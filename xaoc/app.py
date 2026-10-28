@@ -2,7 +2,6 @@ import os
 import asyncio
 import threading
 import uuid
-import requests
 from flask import Flask, render_template, request, jsonify, make_response
 from flask_session import Session
 import discord
@@ -13,7 +12,7 @@ app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
-# Max bots running simultaneously (Adjust based on your RAM)
+# Max bots running simultaneously
 MAX_CONCURRENT_BOTS = 20 
 active_bots = {}
 queue = None
@@ -32,7 +31,6 @@ async def bot_worker():
     while True:
         token, session_id = await queue.get()
         
-        # Check if session was cancelled while in queue
         if session_id not in active_bots:
             queue.task_done()
             continue
@@ -41,7 +39,10 @@ async def bot_worker():
         active_bots[session_id]["bot"] = bot
         
         try:
+            # This handles the validation natively via discord.py-self
             await bot.start(token)
+        except discord.LoginFailure:
+            print(f"[-] [{session_id}] Invalid token.")
         except Exception as e:
             print(f"[-] [{session_id}] Disconnected: {e}")
         finally:
@@ -55,7 +56,6 @@ def start_async_loop():
     asyncio.set_event_loop(bot_loop)
     queue = asyncio.Queue()
     
-    # Start worker pool
     for _ in range(MAX_CONCURRENT_BOTS):
         bot_loop.create_task(bot_worker())
         
@@ -72,16 +72,9 @@ def start_bot():
     data = request.json
     token = data.get('token')
 
+    # Only check the format, not the validity
     if not token or len(token) < 50 or token.count('.') != 2:
         return jsonify({"error": "Invalid token format"}), 400
-
-    # Pre-validate token to save server resources
-    try:
-        res = requests.get("https://discord.com/api/v9/users/@me", headers={"Authorization": token}, timeout=5)
-        if res.status_code != 200:
-            return jsonify({"error": "Token is dead or locked"}), 400
-    except Exception:
-        return jsonify({"error": "Failed to reach Discord"}), 500
 
     session_id = str(uuid.uuid4())
     
@@ -113,7 +106,6 @@ def stop_bot():
 @app.route('/api/status', methods=['GET'])
 def status():
     session_id = request.cookies.get('xaoc_session')
-    # Return status of the user's bot, plus the global count
     global_active = len(active_bots)
     if session_id and session_id in active_bots:
         return jsonify({"status": "running", "global": global_active})
