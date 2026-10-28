@@ -1,67 +1,17 @@
 import os
-import asyncio
-import threading
 import uuid
+import subprocess
+import sys
 from flask import Flask, render_template, request, jsonify, make_response
 from flask_session import Session
-import discord
-from discord.ext import commands
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
-# Max bots running simultaneously
-MAX_CONCURRENT_BOTS = 20 
-active_bots = {}
-queue = None
-bot_loop = None
-
-class FullSelfbot(commands.Bot):
-    def __init__(self, token, session_id):
-        super().__init__(command_prefix=".", self_bot=True, intents=discord.Intents.all())
-        self.token = token
-        self.session_id = session_id
-
-    async def on_ready(self):
-        print(f"[+] [{self.session_id}] Logged in as {self.user.name}")
-
-async def bot_worker():
-    while True:
-        token, session_id = await queue.get()
-        
-        if session_id not in active_bots:
-            queue.task_done()
-            continue
-
-        bot = FullSelfbot(token, session_id)
-        active_bots[session_id]["bot"] = bot
-        
-        try:
-            # This handles the validation natively via discord.py-self
-            await bot.start(token)
-        except discord.LoginFailure:
-            print(f"[-] [{session_id}] Invalid token.")
-        except Exception as e:
-            print(f"[-] [{session_id}] Disconnected: {e}")
-        finally:
-            if session_id in active_bots:
-                del active_bots[session_id]
-            queue.task_done()
-
-def start_async_loop():
-    global bot_loop, queue
-    bot_loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(bot_loop)
-    queue = asyncio.Queue()
-    
-    for _ in range(MAX_CONCURRENT_BOTS):
-        bot_loop.create_task(bot_worker())
-        
-    bot_loop.run_forever()
-
-threading.Thread(target=start_async_loop, daemon=True).start()
+# Store all running processes in a dictionary
+active_processes = {}
 
 @app.route('/')
 def index():
@@ -72,44 +22,63 @@ def start_bot():
     data = request.json
     token = data.get('token')
 
-    # Only check the format, not the validity
-    if not token or len(token) < 50 or token.count('.') != 2:
+    if not token or len(token) < 20:
         return jsonify({"error": "Invalid token format"}), 400
 
+    # Generate a unique ID for this browser session
     session_id = str(uuid.uuid4())
     
-    resp = make_response(jsonify({"message": "Added to queue" if queue.qsize() >= MAX_CONCURRENT_BOTS else "Connecting..."}))
-    resp.set_cookie('xaoc_session', session_id, httponly=True, secure=True, samesite='Strict')
+    # Pass the token to main.py securely via environment variables
+    env = os.environ.copy()
+    env["TOKEN"] = token
 
-    active_bots[session_id] = {"token": token, "status": "queued"}
-    asyncio.run_coroutine_threadsafe(queue.put((token, session_id)), bot_loop)
-
-    return resp
+    try:
+        # Launch main.py for this specific token
+        process = subprocess.Popen(
+            [sys.executable, "main.py"],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        active_processes[session_id] = process
+        
+        # Set the cookie to identify this user
+        resp = make_response(jsonify({"message": "Connecting..."}))
+        resp.set_cookie('xaoc_session', session_id, httponly=True, secure=True, samesite='Strict')
+        return resp
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/stop', methods=['POST'])
 def stop_bot():
     session_id = request.cookies.get('xaoc_session')
     
-    if session_id in active_bots:
-        bot = active_bots[session_id].get("bot")
-        if bot:
-            asyncio.run_coroutine_threadsafe(bot.close(), bot_loop)
-            
-        del active_bots[session_id]
+    if session_id in active_processes:
+        proc = active_processes[session_id]
+        proc.terminate() # Kill the subprocess
+        del active_processes[session_id]
         
         resp = make_response(jsonify({"message": "Disconnected"}))
         resp.delete_cookie('xaoc_session')
         return resp
         
-    return jsonify({"error": "Session not found"}), 400
+    return jsonify({"error": "Not running"}), 400
 
 @app.route('/api/status', methods=['GET'])
 def status():
     session_id = request.cookies.get('xaoc_session')
-    global_active = len(active_bots)
-    if session_id and session_id in active_bots:
-        return jsonify({"status": "running", "global": global_active})
-    return jsonify({"status": "stopped", "global": global_active})
+    
+    # Check if the process exists and is still running
+    if session_id in active_processes and active_processes[session_id].poll() is None:
+        return jsonify({"status": "running", "global": len(active_processes)})
+        
+    # If it crashed or finished, clean it up
+    if session_id in active_processes:
+        del active_processes[session_id]
+        
+    return jsonify({"status": "stopped", "global": len(active_processes)})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
