@@ -47,11 +47,7 @@
             background: #222; padding: 10px 15px; border-radius: 6px; margin-bottom: 10px;
             border-left: 4px solid #00ff00;
         }
-        .stop-btn {
-            background: #ff4444; color: white; border: none; padding: 5px 10px;
-            border-radius: 4px; cursor: pointer; font-weight: bold;
-        }
-        .stop-btn:hover { background: #cc0000; }
+        .online-text { color: #00ff00; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -90,7 +86,7 @@
                 div.className = 'bot-item';
                 div.innerHTML = `
                     <span><strong>${bot.name}</strong> <br><small style="color:#888;">ID: ${bot.id}</small></span>
-                    <button class="stop-btn" onclick="stopBot('${bot.id}')">Stop</button>
+                    <span class="online-text">ONLINE</span>
                 `;
                 botList.appendChild(div);
             });
@@ -138,15 +134,6 @@
         
         btn.innerText = "Host Selfbot";
         btn.disabled = false;
-    }
-
-    async function stopBot(id) {
-        await fetch('/api/stop', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id })
-        });
-        fetchStatus();
     }
     
     // Load initial list on page load
