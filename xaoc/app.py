@@ -1,77 +1,81 @@
-import os
-import uuid
+from flask import Flask, render_template, request, jsonify
 import subprocess
+import os
 import sys
-from flask import Flask, render_template, request, jsonify, make_response
-from flask_session import Session
+import requests
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(24)
-app.config['SESSION_TYPE'] = 'filesystem'
-Session(app)
 
-active_processes = {}
+bot_process = None
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@app.route('/api/status', methods=['GET'])
+def status():
+    global bot_process
+    if bot_process is not None and bot_process.poll() is None:
+        return jsonify({"status": "running"})
+    return jsonify({"status": "stopped"})
+
 @app.route('/api/start', methods=['POST'])
 def start_bot():
+    global bot_process
     data = request.json
     token = data.get('token')
 
-    if not token or len(token) < 50 or token.count('.') != 2:
+    if not token or len(token) < 20:
         return jsonify({"error": "Invalid token format"}), 400
 
-    session_id = str(uuid.uuid4())
-    
-    # Pass the token to main.py
+    # TEST THE TOKEN BEFORE LAUNCHING TO PREVENT UI HANGING
+    try:
+        headers = {"Authorization": token}
+        r = requests.get("https://discord.com/api/v10/users/@me", headers=headers, timeout=5)
+        if r.status_code != 200:
+            return jsonify({"error": "Invalid Token! Discord rejected it."}), 401
+    except Exception:
+        return jsonify({"error": "Could not reach Discord to verify token."}), 500
+
+    if bot_process is not None:
+        try:
+            bot_process.terminate()
+            bot_process.wait(timeout=3)
+        except Exception:
+            pass
+
     env = os.environ.copy()
     env["TOKEN"] = token
 
     try:
-        # Run main.py directly. No stdout pipes to prevent deadlocks.
-        process = subprocess.Popen(
-            ["python", "main.py"],
-            env=env
+        # Log bot output to a file so it doesn't deadlock the web server
+        log_file = open("bot.log", "a")
+        log_file.write("\n--- STARTING BOT ---\n")
+        
+        bot_process = subprocess.Popen(
+            [sys.executable, "main.py"],
+            env=env,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            text=True
         )
-        active_processes[session_id] = process
-        
-        resp = make_response(jsonify({"message": "Connecting..."}))
-        resp.set_cookie('xaoc_session', session_id, httponly=True, secure=True, samesite='Strict')
-        return resp
-        
+        return jsonify({"message": "Connecting..."})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/stop', methods=['POST'])
 def stop_bot():
-    session_id = request.cookies.get('xaoc_session')
-    
-    if session_id in active_processes:
-        proc = active_processes[session_id]
-        proc.terminate() # Kills the main.py process
-        del active_processes[session_id]
-        
-        resp = make_response(jsonify({"message": "Disconnected"}))
-        resp.delete_cookie('xaoc_session')
-        return resp
-        
+    global bot_process
+    if bot_process is not None:
+        try:
+            bot_process.terminate()
+            bot_process.wait(timeout=3)
+            bot_process = None
+            return jsonify({"message": "Offline"})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
     return jsonify({"error": "Not running"}), 400
 
-@app.route('/api/status', methods=['GET'])
-def status():
-    session_id = request.cookies.get('xaoc_session')
-    
-    if session_id in active_processes and active_processes[session_id].poll() is None:
-        return jsonify({"status": "running", "global": len(active_processes)})
-        
-    if session_id in active_processes:
-        del active_processes[session_id]
-        
-    return jsonify({"status": "stopped", "global": len(active_processes)})
-
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    print("Starting Xaoc Dashboard on http://localhost:5000")
+    app.run(host='0.0.0.0', port=5000, debug=False)
