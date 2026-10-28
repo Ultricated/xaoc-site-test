@@ -2,183 +2,136 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Xaoc Cloud</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xaoc Dashboard</title>
     <style>
-        :root {
-            --bg: #050505;
-            --panel: #0f0f0f;
-            --border: #222222;
-            --text: #ffffff;
-            --text-muted: #888888;
-            --accent: #ff3333;
-            --green: #00ff88;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         body {
-            background-color: var(--bg);
-            color: var(--text);
+            background-color: #0f0f0f;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            padding: 20px;
+            height: 100vh;
+            margin: 0;
         }
-
-        .container {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 40px 30px;
-            width: 100%;
-            max-width: 420px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        .card {
+            background-color: #1a1a1a;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             text-align: center;
+            width: 350px;
         }
-
-        h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
-        h2 span { color: var(--accent); }
-        
-        .global-status {
-            font-size: 12px;
-            color: var(--green);
-            margin-bottom: 30px;
-            font-weight: 600;
-            text-transform: uppercase;
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
             letter-spacing: 1px;
         }
-
-        input[type="password"] {
+        .status {
+            color: #00ff00;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            letter-spacing: 1px;
+        }
+        input {
             width: 100%;
-            background: #000;
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 16px;
-            border-radius: 10px;
-            font-size: 14px;
-            outline: none;
+            padding: 12px;
+            background-color: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: white;
+            box-sizing: border-box;
             margin-bottom: 20px;
-            font-family: monospace;
-            text-align: center;
+            outline: none;
         }
-
-        input[type="password"]:focus { border-color: var(--accent); }
-
-        .btn {
+        input:focus {
+            border-color: #555;
+        }
+        button {
             width: 100%;
-            padding: 16px;
+            padding: 12px;
+            background-color: white;
+            color: black;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 700;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: 0.2s;
         }
-
-        .btn:hover { opacity: 0.8; }
-        .btn-start { background-color: var(--text); color: var(--bg); }
-        .btn-stop { background-color: var(--accent); color: #fff; display: none; }
-
-        .status { font-size: 13px; color: var(--text-muted); margin-top: 20px; min-height: 20px; }
+        button:hover {
+            background-color: #ddd;
+        }
+        .msg {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #00ff00;
+        }
+        .error {
+            color: #ff4444;
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>xaoc<span>.</span></h2>
-        <div class="global-status" id="global-count">0 bots online</div>
-        
-        <div id="connect-view">
-            <input type="password" id="token" placeholder="Paste token here...">
-            <button class="btn btn-start" onclick="startBot()">Host Selfbot</button>
-        </div>
-        
-        <div id="active-view" style="display: none;">
-            <p style="color: var(--green); margin-bottom: 20px; font-weight: 600;">Selfbot is running 24/7.</p>
-            <button class="btn btn-stop" style="display: block;" onclick="stopBot()">Disconnect</button>
-        </div>
-        
-        <div id="status-message" class="status"></div>
-    </div>
+<div class="card">
+    <h1>Xaoc.</h1>
+    <div class="status" id="statusText">0 BOTS ONLINE</div>
+    
+    <input type="password" id="tokenInput" placeholder="Paste token here...">
+    <button onclick="startBot()" id="hostBtn">Host Selfbot</button>
+    
+    <div class="msg" id="messageText"></div>
+</div>
 
-    <script>
-        async function checkStatus() {
-            try {
-                const res = await fetch('/api/status');
-                const data = await res.json();
-                
-                document.getElementById('global-count').innerText = `${data.global} bots online`;
-                
-                if (data.status === 'running') {
-                    document.getElementById('connect-view').style.display = 'none';
-                    document.getElementById('active-view').style.display = 'block';
-                } else {
-                    document.getElementById('connect-view').style.display = 'block';
-                    document.getElementById('active-view').style.display = 'none';
-                }
-            } catch (e) {}
+<script>
+    async function startBot() {
+        const token = document.getElementById('tokenInput').value;
+        const msg = document.getElementById('messageText');
+        const btn = document.getElementById('hostBtn');
+        
+        if(!token) {
+            msg.innerText = "Please paste a token.";
+            msg.className = "msg error";
+            return;
         }
 
-        async function startBot() {
-            const token = document.getElementById('token').value;
-            const statusText = document.getElementById('status-message');
+        msg.innerText = "Connecting...";
+        msg.className = "msg";
+        btn.innerText = "Connecting...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            });
             
-            if (!token) {
-                statusText.innerText = "Token required.";
-                statusText.style.color = "var(--accent)";
-                return;
+            const data = await res.json();
+            
+            if(res.ok) {
+                msg.innerText = "Connected! Bot is running.";
+                msg.className = "msg";
+                btn.innerText = "Bot is Online";
+                document.getElementById('statusText').innerText = "1 BOT ONLINE";
+                document.getElementById('statusText').style.color = "#00ff00";
+            } else {
+                msg.innerText = data.error;
+                msg.className = "msg error";
+                btn.innerText = "Host Selfbot";
+                btn.disabled = false;
             }
-
-            statusText.innerText = "Validating token...";
-            statusText.style.color = "#ffcc00";
-
-            try {
-                const res = await fetch('/api/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token })
-                });
-                
-                const data = await res.json();
-                
-                if (res.ok) {
-                    statusText.innerText = data.message;
-                    statusText.style.color = "var(--green)";
-                    document.getElementById('token').value = '';
-                    setTimeout(checkStatus, 1500); 
-                } else {
-                    statusText.innerText = "Error: " + data.error;
-                    statusText.style.color = "var(--accent)";
-                }
-            } catch (err) {
-                statusText.innerText = "Server offline";
-                statusText.style.color = "var(--accent)";
-            }
+        } catch (e) {
+            msg.innerText = "Server error.";
+            msg.className = "msg error";
+            btn.innerText = "Host Selfbot";
+            btn.disabled = false;
         }
-
-        async function stopBot() {
-            const statusText = document.getElementById('status-message');
-            statusText.innerText = "Disconnecting...";
-            statusText.style.color = "#ffcc00";
-
-            try {
-                const res = await fetch('/api/stop', { method: 'POST' });
-                if (res.ok) {
-                    statusText.innerText = "Offline";
-                    statusText.style.color = "var(--text-muted)";
-                    setTimeout(checkStatus, 1000);
-                }
-            } catch (err) {
-                statusText.innerText = "Server offline";
-                statusText.style.color = "var(--accent)";
-            }
-        }
-
-        // Check status every 10 seconds to keep global count updated
-        setInterval(checkStatus, 10000);
-        window.onload = checkStatus;
-    </script>
+    }
+</script>
 
 </body>
 </html>
