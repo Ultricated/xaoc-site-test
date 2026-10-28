@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xaoc</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --panel-hover: #252525;
+            --border: #2a2a2a;
+            --text: #d4d4d4;
+            --text-muted: #888888;
+            --accent: #3b3b3b;
+            --green: #4caf50;
+            --red: #e53935;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Bar */
+        .topbar {
+            background-color: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: flex;
+            padding: 8px;
+            margin-bottom: 40px;
+            gap: 5px;
+            width: 100%;
+        }
+
+        .topbar button {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 12px 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: calc(var(--radius) - 4px);
+            transition: all 0.2s ease;
+        }
+
+        .topbar button:hover {
+            background-color: var(--panel-hover);
+            color: var(--text);
+        }
+
+        .topbar button.active {
+            background-color: var(--accent);
+            color: #ffffff;
+        }
+
+        /* Panels */
+        .panel {
+            display: none;
+            animation: fadeIn 0.2s ease-in-out;
+            width: 100%;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Main Tab (Longer & Skinnier) */
+        .login-card {
+            background-color: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px 40px;
+            width: 100%;
+            max-width: 650px;
+            margin: 60px auto;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-card h2 {
+            font-size: 24px;
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-weight: 600;
+            letter-spacing: 2px;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border 0.2s;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        input[type="password"]:focus {
+            border-color: var(--text-muted);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            font-family: inherit;
+        }
+
+        .btn:hover { opacity: 0.85; }
+        .btn-start { background-color: #ffffff; color: #000000; }
+        .btn-stop { background-color: var(--accent); color: #ffffff; }
+
+        .status-message {
+            font-size: 13px;
+            color: var(--text-muted);
+            height: 20px;
+            transition: color 0.2s;
+        }
+
+        /* Tutorial & Dev Pages */
+        .content-box {
+            background-color: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            line-height: 1.6;
+        }
+
+        .step {
+            margin-bottom: 20px;
+        }
+
+        .step h4 {
+            color: #ffffff;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .step p {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        code {
+            background-color: var(--bg);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #e2e2e2;
+            border: 1px solid var(--border);
+        }
+
+        .section-title {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dev-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 16px;
+        }
+
+        .dev-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .dev-link:hover {
+            background-color: var(--panel-hover);
+        }
+
+        /* Commands Page */
+        .commands-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .cmd-category {
+            background-color: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+
+        .cmd-category h3 {
+            color: #ffffff;
+            font-size: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            text-transform: capitalize;
+        }
+
+        .cmd-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cmd-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            gap: 10px;
+        }
+
+        .cmd-name {
+            font-family: monospace;
+            color: #ffffff;
+        }
+
+        .cmd-desc {
+            color: var(--text-muted);
+            text-align: right;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .topbar {
+                flex-wrap: wrap;
+            }
+            .topbar button {
+                flex: 1 1 40%;
+            }
+            .login-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="topbar">
+        <button class="nav-btn active" onclick="switchTab('main', this)">Main</button>
+        <button class="nav-btn" onclick="switchTab('tutorial', this)">Tutorial</button>
+        <button class="nav-btn" onclick="switchTab('commands', this)">Commands</button>
+        <button class="nav-btn" onclick="switchTab('developer', this)">Developer</button>
+    </div>
+
+    <!-- MAIN TAB -->
+    <div id="main" class="panel active">
+        <div class="login-card">
+            <h2>XAOC</h2>
+            <input type="password" id="token" placeholder="Paste token here...">
+            <div class="btn-group">
+                <button class="btn btn-start" onclick="startBot()">Connect</button>
+                <button class="btn btn-stop" onclick="stopBot()">Disconnect</button>
+            </div>
+            <div id="status-message" class="status-message"></div>
+        </div>
+    </div>
+
+    <!-- TUTORIAL TAB -->
+    <div id="tutorial" class="panel">
+        <div class="content-box">
+            
+            <div class="section-title">PC Tutorial</div>
+            
+            <div class="step">
+                <h4>1. Open Discord Web</h4>
+                <p>Log into your account using a web browser (Chrome, Edge, Firefox) on your computer. Do not use the desktop app.</p>
+            </div>
+            
+            <div class="step">
+                <h4>2. Open Developer Tools</h4>
+                <p>Press <code>F12</code> on your keyboard or right-click anywhere and select "Inspect".</p>
+            </div>
+
+            <div class="step">
+                <h4>3. Find Local Storage</h4>
+                <p>Go to the <strong>Application</strong> tab (or <strong>Storage</strong> in Firefox) and expand <strong>Local Storage</strong>. Select <code>https://discord.com</code>.</p>
+            </div>
+
+            <div class="step">
+                <h4>4. Copy the Token</h4>
+                <p>Find the key named <code>token</code>. Right-click the value next to it and copy it.</p>
+            </div>
+
+            <br><br>
+
+            <div class="section-title">Mobile Tutorial</div>
+
+            <div class="step">
+                <h4>Option 1: Using Kiwi Browser (Android)</h4>
+                <p>Download Kiwi Browser from the Play Store. Open Discord in Kiwi, tap the 3 dots in the top right, scroll down to "Developer Tools", and follow the exact same steps as the PC tutorial.</p>
+            </div>
+
+            <div class="step">
+                <h4>Option 2: Using a PC (iOS & Android)</h4>
+                <p>If you are on iOS (Safari) or don't want to download another browser, the easiest way is to log into Discord web on a computer, grab the token using the PC steps above, and simply email or DM the token to yourself to paste into this dashboard.</p>
+            </div>
+
+            <br><br>
+
+            <div class="section-title">Common Errors</div>
+
+            <div class="step">
+                <h4>Improper Token</h4>
+                <p>You likely copied a Bot Token from the Developer Portal instead of a User Token. Follow the steps above exactly.</p>
+            </div>
+
+            <div class="step">
+                <h4>Process Closes Instantly</h4>
+                <p>Check your terminal. You may be missing dependencies. Run <code>pip install -r requirements.txt</code>.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMMANDS TAB -->
+    <div id="commands" class="panel">
+        <div class="commands-grid">
+            <!-- Admin -->
+            <div class="cmd-category">
+                <h3>Admin</h3>
+                <div class="cmd-list">
+                    <div class="cmd-item"><span class="cmd-name">.prefix</span> <span class="cmd-desc">change prefix</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.remoteuser</span> <span class="cmd-desc">authorize user</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.whitelist</span> <span class="cmd-desc">let others run cmds</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.unwhitelist</span> <span class="cmd-desc">remove whitelist</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.list_whitelist</span> <span class="cmd-desc">show whitelist</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.autoreply</span> <span class="cmd-desc">toggle auto replies</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.afk</span> <span class="cmd-desc">toggle afk message</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.copycat</span> <span class="cmd-desc">mirror user</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.customstatus</span> <span class="cmd-desc">change status</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.autodelete</span> <span class="cmd-desc">auto-delete msgs</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.ignore</span> <span class="cmd-desc">ignore user</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.unignore</span> <span class="cmd-desc">stop ignoring</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.ignorelist</span> <span class="cmd-desc">show ignored</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.alias</span> <span class="cmd-desc">create shortcut</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.unalias</span> <span class="cmd-desc">remove shortcut</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.aliases</span> <span class="cmd-desc">list aliases</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.status</span> <span class="cmd-desc">change status</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.rotation</span> <span class="cmd-desc">rotate presence</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.platform</span> <span class="cmd-desc">spoof client</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.rpc</span> <span class="cmd-desc">set activity</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.clone</span> <span class="cmd-desc">clone server</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.stopall</span> <span class="cmd-desc">stop all tasks</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.config</span> <span class="cmd-desc">view config</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.uptime</span> <span class="cmd-desc">bot uptime</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.ping</span> <span class="cmd-desc">latency</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.shutdown</span> <span class="cmd-desc">stop process</span></div>
+                </div>
+            </div>
+
+            <!-- Animated & Text -->
+            <div class="cmd-category">
+                <h3>Text & Animated</h3>
+                <div class="cmd-list">
+                    <div class="cmd-item"><span class="cmd-name">.airplane</span> <span class="cmd-desc">animation</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.faketype</span> <span class="cmd-desc">fake typing</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.nickcycle</span> <span class="cmd-desc">cycle names</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.timer</span> <span class="cmd-desc">countdown</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.ascii</span> <span class="cmd-desc">ascii art</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.leetspeak</span> <span class="cmd-desc">l33t speak</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.reverse</span> <span class="cmd-desc">reverse text</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.edit</span> <span class="cmd-desc">move edit tag</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.hidemention</span> <span class="cmd-desc">hide text</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.zalgo</span> <span class="cmd-desc">corrupted text</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.aesthetic</span> <span class="cmd-desc">fullwidth text</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.bubble</span> <span class="cmd-desc">bubble text</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.morse</span> <span class="cmd-desc">morse code</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.binary</span> <span class="cmd-desc">binary code</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.spoiler</span> <span class="cmd-desc">spoiler text</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.shrug</span> <span class="cmd-desc">shrug emoji</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.tableflip</span> <span class="cmd-desc">flip table</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.unflip</span> <span class="cmd-desc">put table back</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.blank</span> <span class="cmd-desc">blank msg</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.chatbypass</span> <span class="cmd-desc">bold unicode</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.regional</span> <span class="cmd-desc">emoji letters</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.randomcase</span> <span class="cmd-desc">random case</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.animate</span> <span class="cmd-desc">type out text</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.lmgtfy</span> <span class="cmd-desc">google search link</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.json/.python/.js/.html</span> <span class="cmd-desc">codeblocks</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.css/.java/.c/.cpp/.php/.lua</span> <span class="cmd-desc">codeblocks</span></div>
+                </div>
+            </div>
+
+            <!-- Image & Social -->
+            <div class="cmd-category">
+                <h3>Image & Social</h3>
+                <div class="cmd-list">
+                    <div class="cmd-item"><span class="cmd-name">.avatar</span> <span class="cmd-desc">get pfp</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.userbanner</span> <span class="cmd-desc">get banner</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.servericon</span> <span class="cmd-desc">get server icon</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.serverbanner</span> <span class="cmd-desc">get server banner</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.usericon</span> <span class="cmd-desc">pfp link</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.guildicon</span> <span class="cmd-desc">server icon link</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.guildbanner</span> <span class="cmd-desc">server banner link</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.qr</span> <span class="cmd-desc">qr code</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.pfpglitch</span> <span class="cmd-desc">glitch pfp</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.pfppixelate</span> <span class="cmd-desc">pixelate pfp</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.lovecalc</span> <span class="cmd-desc">love calculator</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.cat/.dog/.bird/.fox/.raccoon</span> <span class="cmd-desc">random animals</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.achievement</span> <span class="cmd-desc">mc achievement</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.challenge</span> <span class="cmd-desc">mc challenge</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.fakechat</span> <span class="cmd-desc">fake message img</span></div>
+                    <div style="margin-top: 10px;"></div>
+                    <div class="cmd-item"><span class="cmd-name">.hug/.kiss/.kill/.slap</span> <span class="cmd-desc">social gifs</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.pat/.bonk/.cuddle</span> <span class="cmd-desc">social gifs</span></div>
+                </div>
+            </div>
+
+            <!-- Troll & Abuse -->
+            <div class="cmd-category">
+                <h3>Troll & Abuse</h3>
+                <div class="cmd-list">
+                    <div class="cmd-item"><span class="cmd-name">.ghostping</span> <span class="cmd-desc">ping and delete</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.mimic</span> <span class="cmd-desc">copy user</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.autoreact</span> <span class="cmd-desc">auto-react</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.msgspam</span> <span class="cmd-desc">spam channel</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.dmspam</span> <span class="cmd-desc">spam dms</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.reactspam</span> <span class="cmd-desc">spam reactions</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.trap</span> <span class="cmd-desc">keep in group dm</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.callspam</span> <span class="cmd-desc">ring user</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.callflood</span> <span class="cmd-desc">fast ring loop</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.calltrap</span> <span class="cmd-desc">auto-answer calls</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.tokenflood</span> <span class="cmd-desc">fake tokens</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.nitroflood</span> <span class="cmd-desc">fake nitro</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.dick</span> <span class="cmd-desc">size calc</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.gcname</span> <span class="cmd-desc">rename gc</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.antigc</span> <span class="cmd-desc">leave all gcs</span></div>
+                    <div style="margin-top: 10px;"></div>
+                    <div class="cmd-item"><span class="cmd-name">.spam</span> <span class="cmd-desc">spam msg</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.quickdelete</span> <span class="cmd-desc">delete after 2s</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.dmall</span> <span class="cmd-desc">dm server members</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.sendall</span> <span class="cmd-desc">msg all channels</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.clear</span> <span class="cmd-desc">clear view</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.purge</span> <span class="cmd-desc">delete messages</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.cleardm</span> <span class="cmd-desc">delete dms</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.massdm</span> <span class="cmd-desc">dm friends</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.massdm_server</span> <span class="cmd-desc">dm server</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.massdm_guild</span> <span class="cmd-desc">dm guild by id</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.massmention</span> <span class="cmd-desc">mention everyone</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.invitespam</span> <span class="cmd-desc">create invites</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.friendspam</span> <span class="cmd-desc">spam requests</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.leaveguilds</span> <span class="cmd-desc">leave all servers</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.leave</span> <span class="cmd-desc">leave server id</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.closedms</span> <span class="cmd-desc">close dms</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.muteall</span> <span class="cmd-desc">mute servers</span></div>
+                </div>
+            </div>
+
+            <!-- Fun & Tools -->
+            <div class="cmd-category">
+                <h3>Tools</h3>
+                <div class="cmd-list">
+                    <div class="cmd-item"><span class="cmd-name">.geoip</span> <span class="cmd-desc">ip geolocation</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.pingweb</span> <span class="cmd-desc">web status</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.tts</span> <span class="cmd-desc">text to speech</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.tokeninfo</span> <span class="cmd-desc">scrape token</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.gentoken</span> <span class="cmd-desc">fake token</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.nitro</span> <span class="cmd-desc">fake nitro</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.whremove</span> <span class="cmd-desc">delete webhook</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.hypesquad</span> <span class="cmd-desc">change house</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.info</span> <span class="cmd-desc">account info</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.serverinfo</span> <span class="cmd-desc">server info</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.fetchmembers</span> <span class="cmd-desc">export members</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.firstmessage</span> <span class="cmd-desc">first msg link</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.lastmessage</span> <span class="cmd-desc">last msg link</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.massreact</span> <span class="cmd-desc">react to msgs</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.react/.unreact</span> <span class="cmd-desc">manual react</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.nickall</span> <span class="cmd-desc">change all nicks</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.purgeuser</span> <span class="cmd-desc">delete user msgs</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.check</span> <span class="cmd-desc">check account age</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.count</span> <span class="cmd-desc">count msgs</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.define</span> <span class="cmd-desc">dictionary</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.languages</span> <span class="cmd-desc">lang codes</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.joinvc/.leavevc</span> <span class="cmd-desc">voice</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.joinserver</span> <span class="cmd-desc">join invite</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.weather</span> <span class="cmd-desc">weather</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.translate</span> <span class="cmd-desc">translate</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.price</span> <span class="cmd-desc">crypto price</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.news</span> <span class="cmd-desc">headlines</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.ytsearch</span> <span class="cmd-desc">youtube search</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.github</span> <span class="cmd-desc">github info</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.remind</span> <span class="cmd-desc">dm reminder</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.reminders</span> <span class="cmd-desc">list reminders</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.schedule</span> <span class="cmd-desc">schedule msg</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.schedules</span> <span class="cmd-desc">list schedules</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.watch/.unwatch</span> <span class="cmd-desc">online watcher</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.watchlist</span> <span class="cmd-desc">list watches</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.watchword</span> <span class="cmd-desc">word watcher</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.unwatchword</span> <span class="cmd-desc">stop watching</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.watchwords</span> <span class="cmd-desc">list words</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.backupdms</span> <span class="cmd-desc">dump dms</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.saved</span> <span class="cmd-desc">bookmarks</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.vcecho</span> <span class="cmd-desc">follow vc</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.export</span> <span class="cmd-desc">html export</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.specs</span> <span class="cmd-desc">pc specs</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.clearcache</span> <span class="cmd-desc">clear cache</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.inviteinfo</span> <span class="cmd-desc">invite info</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.hiddenchannels</span> <span class="cmd-desc">hidden chans</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.tickets</span> <span class="cmd-desc">ticket chans</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.dmpurge</span> <span class="cmd-desc">purge dms</span></div>
+                    <div style="margin-top: 10px;"></div>
+                    <div class="cmd-item"><span class="cmd-name">.minesweeper</span> <span class="cmd-desc">game</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.8ball</span> <span class="cmd-desc">magic 8ball</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.coinflip</span> <span class="cmd-desc">flip coin</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.dice</span> <span class="cmd-desc">roll dice</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.rps</span> <span class="cmd-desc">rock paper scissors</span></div>
+                </div>
+            </div>
+
+            <!-- Tracking & Sniper -->
+            <div class="cmd-category">
+                <h3>Tracking & Sniper</h3>
+                <div class="cmd-list">
+                    <div class="cmd-item"><span class="cmd-name">.avatars</span> <span class="cmd-desc">avatar history</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.banners</span> <span class="cmd-desc">banner history</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.displays</span> <span class="cmd-desc">name history</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.usernames</span> <span class="cmd-desc">username history</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.editsnipe</span> <span class="cmd-desc">edited msgs</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.snipe</span> <span class="cmd-desc">deleted msgs</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.ghostfriends</span> <span class="cmd-desc">cancelled reqs</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.guildnames</span> <span class="cmd-desc">server names</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.guilds</span> <span class="cmd-desc">mutual servers</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.history</span> <span class="cmd-desc">msg history</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.lastping</span> <span class="cmd-desc">recent pings</span></div>
+                    <div style="margin-top: 10px;"></div>
+                    <div class="cmd-item"><span class="cmd-name">.snipers</span> <span class="cmd-desc">list snipers</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.sniperstatus</span> <span class="cmd-desc">sniper status</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.nitrosniper</span> <span class="cmd-desc">toggle nitro</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.ignoreinvalidcodes</span> <span class="cmd-desc">ignore invalid</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.sniperlog</span> <span class="cmd-desc">recent snipes</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.sniperwebhook</span> <span class="cmd-desc">notify webhook</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.giveawaysniper</span> <span class="cmd-desc">auto-enter</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.giveawaylist</span> <span class="cmd-desc">recent entries</span></div>
+                </div>
+            </div>
+
+            <!-- Nuke -->
+            <div class="cmd-category">
+                <h3>Nuke</h3>
+                <div class="cmd-list">
+                    <div class="cmd-item"><span class="cmd-name">.terminate</span> <span class="cmd-desc">delete all/rename</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.nukechannel</span> <span class="cmd-desc">recreate channel</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.guildrename</span> <span class="cmd-desc">rename server</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.channelspam</span> <span class="cmd-desc">create channels</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.channeldelete</span> <span class="cmd-desc">delete channels</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.channelrename</span> <span class="cmd-desc">rename channels</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.channelwebhook</span> <span class="cmd-desc">create webhooks</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.rolecreate</span> <span class="cmd-desc">create roles</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.roledelete</span> <span class="cmd-desc">delete roles</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.roleadmin</span> <span class="cmd-desc">give admin</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.emojidelete</span> <span class="cmd-desc">delete emojis</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.serverrename</span> <span class="cmd-desc">rename server</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.banall</span> <span class="cmd-desc">ban everyone</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.massban</span> <span class="cmd-desc">ban everyone</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.unbanall</span> <span class="cmd-desc">unban all</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.kickall</span> <span class="cmd-desc">kick everyone</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.everyone</span> <span class="cmd-desc">ping everyone</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.here</span> <span class="cmd-desc">ping here</span></div>
+                    <div class="cmd-item"><span class="cmd-name">.autoapprove</span> <span class="cmd-desc">approve members</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DEVELOPER TAB -->
+    <div id="developer" class="panel">
+        <div class="content-box" style="text-align: center; padding: 60px 32px;">
+            <h1 class="dev-title">чжднм</h1>
+            <p class="sub" style="margin-bottom: 10px;">created and maintained by</p>
+            <a href="https://discord.gg/FM8sjtDAHz" target="_blank" class="dev-link">https://discord.gg/FM8sjtDAHz</a>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    async function startBot() {
+        const token = document.getElementById('token').value;
+        const statusText = document.getElementById('status-message');
+        
+        if (!token) {
+            statusText.innerText = "Token required.";
+            statusText.style.color = "var(--red)";
+            return;
+        }
+
+        statusText.innerText = "Connecting...";
+        statusText.style.color = "#ffeb3b";
+
+        try {
+            const res = await fetch('/api/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                statusText.innerText = "Online";
+                statusText.style.color = "var(--green)";
+            } else {
+                statusText.innerText = "Error: " + data.error;
+                statusText.style.color = "var(--red)";
+            }
+        } catch (err) {
+            statusText.innerText = "Server Error";
+            statusText.style.color = "var(--red)";
+        }
+    }
+
+    async function stopBot() {
+        const statusText = document.getElementById('status-message');
+        statusText.innerText = "Disconnecting...";
+        statusText.style.color = "#ffeb3b";
+
+        try {
+            const res = await fetch('/api/stop', { method: 'POST' });
+            const data = await res.json();
+            
+            if (res.ok) {
+                statusText.innerText = "Offline";
+                statusText.style.color = "var(--red)";
+            } else {
+                statusText.innerText = data.error;
+            }
+        } catch (err) {
+            statusText.innerText = "Server Error";
+            statusText.style.color = "var(--red)";
+        }
+    }
+
+    window.onload = async () => {
+        try {
+            const res = await fetch('/api/status');
+            const data = await res.json();
+            const statusText = document.getElementById('status-message');
+            
+            if (data.status === 'running') {
+                statusText.innerText = "Online";
+                statusText.style.color = "var(--green)";
+            }
+        } catch(e) {}
+    };
+</script>
+
+</body>
+</html>

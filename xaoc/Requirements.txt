@@ -1,0 +1,9 @@
+discord.py-self
+requests
+colorama
+gtts
+qrcode
+pyfiglet
+Pillow
+websockets
+psutil
