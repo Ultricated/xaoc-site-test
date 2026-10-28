@@ -6,11 +6,13 @@ import requests
 import shutil
 import time
 import secrets
+import uuid
 
 app = Flask(__name__)
-# Secret key is required to use secure browser sessions
+# This secret key keeps the session cookies secure so people can't fake them
 app.secret_key = secrets.token_hex(32) 
 
+# Format: { "random_hash": {"process": process, "discord_id": id} }
 active_bots = {}
 
 @app.route('/')
@@ -19,22 +21,21 @@ def index():
 
 @app.route('/api/status', methods=['GET'])
 def status():
-    # Clean up dead processes
-    dead_ids = []
-    for uid, data in active_bots.items():
+    dead_hashes = []
+    for bot_hash, data in active_bots.items():
         if data["process"].poll() is not None:
-            dead_ids.append(uid)
-    for uid in dead_ids:
-        del active_bots[uid]
+            dead_hashes.append(bot_hash)
+    for h in dead_hashes:
+        del active_bots[h]
         
-    # Check which bots belong to the person viewing the website
     my_bots = session.get('my_bots', [])
     bots_list = []
     
-    for uid in active_bots.keys():
+    # We send a random hash instead of the Discord ID
+    for bot_hash in active_bots.keys():
         bots_list.append({
-            "id": uid, 
-            "mine": uid in my_bots # True if this browser started it
+            "hash": bot_hash, 
+            "mine": bot_hash in my_bots 
         })
         
     return jsonify({"bots": bots_list})
@@ -47,7 +48,7 @@ def start_bot():
     if not token or len(token) < 20:
         return jsonify({"error": "Invalid token format"}), 400
 
-    # 1. Verify token
+    # 1. Verify token with Discord (Token is NEVER sent to the frontend)
     try:
         headers = {"Authorization": token}
         r = requests.get("https://discord.com/api/v10/users/@me", headers=headers, timeout=5)
@@ -57,17 +58,19 @@ def start_bot():
         user_id = user_data["id"]
         username = user_data.get("username", "Unknown")
     except Exception:
-        return jsonify({"error": "Could not reach Discord to verify token."}), 500
+        return jsonify({"error": "Could not reach Discord."}), 500
 
-    if user_id in active_bots:
-        return jsonify({"error": "This token is already running!"}), 400
+    # Check if this Discord ID is already running
+    for data in active_bots.values():
+        if data["discord_id"] == user_id:
+            return jsonify({"error": "This token is already running!"}), 400
 
     # 2. Set up folder
     instance_dir = os.path.join(os.getcwd(), "instances", user_id)
     os.makedirs(instance_dir, exist_ok=True)
 
     if not os.path.exists("main.py"):
-        return jsonify({"error": "main.py is missing from the dashboard folder!"}), 500
+        return jsonify({"error": "main.py is missing!"}), 500
 
     try:
         shutil.copy("main.py", os.path.join(instance_dir, "main.py"))
@@ -76,7 +79,7 @@ def start_bot():
 
     # 3. Start the bot
     env = os.environ.copy()
-    env["TOKEN"] = token
+    env["TOKEN"] = token  # Stored ONLY in server memory, never sent to user
     log_path = os.path.join(instance_dir, "bot.log")
 
     try:
@@ -92,21 +95,22 @@ def start_bot():
             text=True
         )
         
-        # WAIT 3 SECONDS AND CHECK IF IT CRASHED
         time.sleep(3)
         
         if process.poll() is not None:
             with open(log_path, "r") as f:
                 logs = f.read()
             error_msg = logs[-300:].replace("\n", " | ")
-            return jsonify({"error": f"Bot crashed! Error: {error_msg}"}), 500
+            return jsonify({"error": f"Bot crashed: {error_msg}"}), 500
 
-        # If we get here, it's alive! Save it to memory and this browser's session
-        active_bots[user_id] = {"process": process, "name": username}
+        # Generate a random hash to identify this bot securely
+        bot_hash = str(uuid.uuid4())
+        
+        active_bots[bot_hash] = {"process": process, "discord_id": user_id}
         
         my_bots = session.get('my_bots', [])
-        if user_id not in my_bots:
-            my_bots.append(user_id)
+        if bot_hash not in my_bots:
+            my_bots.append(bot_hash)
             session['my_bots'] = my_bots
 
         return jsonify({"message": "Connected!"})
@@ -117,21 +121,20 @@ def start_bot():
 @app.route('/api/stop', methods=['POST'])
 def stop_bot():
     data = request.json
-    user_id = data.get('id')
+    bot_hash = data.get('hash')
     my_bots = session.get('my_bots', [])
     
-    # SECURITY CHECK: If the bot isn't in your browser's session, you can't stop it
-    if user_id not in my_bots:
-        return jsonify({"error": "You don't have permission to stop this bot."}), 403
+    # SECURITY: If the hash isn't in your session, you can't stop it
+    if bot_hash not in my_bots:
+        return jsonify({"error": "You don't own this bot."}), 403
         
-    if user_id in active_bots:
+    if bot_hash in active_bots:
         try:
-            active_bots[user_id]["process"].terminate()
-            active_bots[user_id]["process"].wait(timeout=3)
-            del active_bots[user_id]
+            active_bots[bot_hash]["process"].terminate()
+            active_bots[bot_hash]["process"].wait(timeout=3)
+            del active_bots[bot_hash]
             
-            # Remove from session
-            my_bots.remove(user_id)
+            my_bots.remove(bot_hash)
             session['my_bots'] = my_bots
             
             return jsonify({"message": "Offline"})
