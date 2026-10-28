@@ -9,3 +9,5 @@ websockets
 psutil
 gunicorn
 flask
+flask-cors
+flask-session
