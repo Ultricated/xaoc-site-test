@@ -51,11 +51,9 @@ print("""
                                               ▀▀                   ▄█▀▀
 """)
 
-# --- FIXED TOKEN LOADING FOR RENDER ---
-system = os.environ.get("TOKEN")
+system = os.environ.get("TOKEN") or os.environ.get("DISCORD_TOKEN")
 if not system:
-    print("[!] No token provided. Exiting.")
-    sys.exit(1)
+    system = input("Token: ").strip().strip('"').strip("'")
 
 token = system
 __version__ = "0.8"
@@ -172,37 +170,28 @@ def apihdrs():
 
 def ago(ts):
     d = int(time.time() - ts)
-    if d < 60:
-        return f"{d}s ago"
-    if d < 3600:
-        return f"{d // 60}m ago"
-    if d < 86400:
-        return f"{d // 3600}h ago"
+    if d < 60: return f"{d}s ago"
+    if d < 3600: return f"{d // 60}m ago"
+    if d < 86400: return f"{d // 3600}h ago"
     return f"{d // 86400}d ago"
 
 def savemsg(uid, entry, cap=500):
     uid = str(uid)
-    if uid not in data["message_history"]:
-        data["message_history"][uid] = []
+    if uid not in data["message_history"]: data["message_history"][uid] = []
     data["message_history"][uid].append(entry)
-    if len(data["message_history"][uid]) > cap:
-        data["message_history"][uid] = data["message_history"][uid][-cap:]
+    if len(data["message_history"][uid]) > cap: data["message_history"][uid] = data["message_history"][uid][-cap:]
 
 def savesnipe(channel_id, entry, cap=5):
     cid = str(channel_id)
-    if cid not in data["snipes"]:
-        data["snipes"][cid] = []
+    if cid not in data["snipes"]: data["snipes"][cid] = []
     data["snipes"][cid].append(entry)
-    if len(data["snipes"][cid]) > cap:
-        data["snipes"][cid] = data["snipes"][cid][-cap:]
+    if len(data["snipes"][cid]) > cap: data["snipes"][cid] = data["snipes"][cid][-cap:]
 
 def saveedit(channel_id, entry, cap=5):
     cid = str(channel_id)
-    if cid not in data["editsnipes"]:
-        data["editsnipes"][cid] = []
+    if cid not in data["editsnipes"]: data["editsnipes"][cid] = []
     data["editsnipes"][cid].append(entry)
-    if len(data["editsnipes"][cid]) > cap:
-        data["editsnipes"][cid] = data["editsnipes"][cid][-cap:]
+    if len(data["editsnipes"][cid]) > cap: data["editsnipes"][cid] = data["editsnipes"][cid][-cap:]
 
 mimictargets = {}
 reactchannels = {}
@@ -244,8 +233,7 @@ def selfbot_menu(bot):
  Version: \x1b[38;5;48m {__version__} \x1b[38;5;255m
  """)
 
-# --- FIXED: ADDED INTENTS ---
-bot = commands.Bot(command_prefix=prefix, self_bot=True, help_command=None, intents=discord.Intents.all())
+bot = commands.Bot(command_prefix=prefix, self_bot=True, help_command=None)
 
 async def remindloop():
     while True:
@@ -257,26 +245,21 @@ async def remindloop():
                     try:
                         u = await bot.fetch_user(r["user_id"])
                         await u.send(f"reminder: {r['note']}")
-                    except Exception:
-                        pass
+                    except Exception: pass
                     data["reminders"].remove(r)
                     changed = True
             for s in list(data["schedules"]):
                 if s["fire_at"] <= now and not s.get("fired"):
                     try:
                         ch = bot.get_channel(int(s["channel_id"]))
-                        if ch:
-                            await ch.send(s["message"])
-                    except Exception:
-                        pass
+                        if ch: await ch.send(s["message"])
+                    except Exception: pass
                     s["fired"] = True
                     changed = True
             data["schedules"] = [x for x in data["schedules"] if not x.get("fired")]
-            if changed:
-                save_data()
+            if changed: save_data()
             await asyncio.sleep(20)
-        except Exception:
-            await asyncio.sleep(30)
+        except Exception: await asyncio.sleep(30)
 
 async def ghostloop():
     known = {}
@@ -295,28 +278,23 @@ async def ghostloop():
                         save_data()
             known = current
             await asyncio.sleep(60)
-        except Exception:
-            await asyncio.sleep(120)
+        except Exception: await asyncio.sleep(120)
 
 async def rpcpush():
-    if not rpcstate.get("name"):
-        return False
+    if not rpcstate.get("name"): return False
     type_map = {"playing": 0, "streaming": 1, "listening": 2, "watching": 3, "competing": 5}
     typ = rpcstate.get("type", "playing")
     payload = {"name": rpcstate["name"], "type": type_map.get(typ, 0), "application_id": RPC_CLIENT_ID}
-    if typ == "streaming":
-        payload["url"] = "https://twitch.tv/discord"
+    if typ == "streaming": payload["url"] = "https://twitch.tv/discord"
     try:
         await bot.ws.send_as_json({"op": 3, "d": {"since": 0, "activities": [payload], "status": "online", "afk": False}})
         return True
-    except Exception:
-        return False
+    except Exception: return False
 
 async def rpcloop():
     while True:
         await asyncio.sleep(120)
-        if rpcstate.get("name"):
-            await rpcpush()
+        if rpcstate.get("name"): await rpcpush()
 
 @bot.event
 async def on_ready():
@@ -325,8 +303,7 @@ async def on_ready():
         try:
             import ctypes
             ctypes.windll.kernel32.SetConsoleTitleW(f"Xaoc v{__version__}")
-        except Exception:
-            pass
+        except Exception: pass
     selfbot_menu(bot)
     if remindtask is None or remindtask.done(): remindtask = bot.loop.create_task(remindloop())
     if ghosttask is None or ghosttask.done(): ghosttask = bot.loop.create_task(ghostloop())
@@ -2455,36 +2432,3 @@ async def news(ctx, *, topic: str = None):
 @bot.command()
 async def ytsearch(ctx, *, query: str = None):
     await ctx.message.delete()
-    if not query: return
-    try:
-        ids = re.findall(r'"videoId":"([a-zA-Z0-9_-]{11})"', requests.get("https://www.youtube.com/results", params={"search_query": query}, headers={"User-Agent": "Mozilla/5.0"}, timeout=10).text)
-        if ids: await ctx.send(f"> `[ ytsearch ]` https://youtu.be/{ids[0]}")
-    except Exception: pass
-
-@bot.command()
-async def github(ctx, username: str = None):
-    await ctx.message.delete()
-    if not username: return
-    try:
-        u = requests.get(f"https://api.github.com/users/{username}", timeout=10).json()
-        if "login" in u: await ctx.send(f"> `[ github ]` {u['login']}\n> repos: {u.get('public_repos')} | followers: {u.get('followers')}\n> {u.get('html_url')}")
-    except Exception: pass
-
-def parsedur(s):
-    if not s: return None
-    m = re.match(r"^(\d+)([smhd])$", s.strip(), re.IGNORECASE)
-    if not m: return None
-    return int(m.group(1)) * {"s": 1, "m": 60, "h": 3600, "d": 86400}[m.group(2).lower()]
-
-@bot.command()
-async def remind(ctx, duration: str = None, *, note: str = None):
-    await ctx.message.delete()
-    secs = parsedur(duration)
-    if secs and note:
-        data["reminders"].append({"user_id": ctx.author.id, "note": note, "fire_at": time.time() + secs})
-        save_data()
-
-@bot.command()
-async def reminders(ctx):
-    await ctx.message.delete()
-    if not data["reminders"]: await ctx.send
