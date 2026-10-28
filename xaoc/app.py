@@ -75,14 +75,6 @@ def start_bot():
     if not token or len(token) < 50 or token.count('.') != 2:
         return jsonify({"error": "Invalid token format"}), 400
 
-    # Pre-validate token to save server resources
-    try:
-        res = requests.get("https://discord.com/api/v9/users/@me", headers={"Authorization": token}, timeout=5)
-        if res.status_code != 200:
-            return jsonify({"error": "Token is dead or locked"}), 400
-    except Exception:
-        return jsonify({"error": "Failed to reach Discord"}), 500
-
     session_id = str(uuid.uuid4())
     
     resp = make_response(jsonify({"message": "Added to queue" if queue.qsize() >= MAX_CONCURRENT_BOTS else "Connecting..."}))
