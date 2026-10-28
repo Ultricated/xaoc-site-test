@@ -7,3 +7,5 @@ pyfiglet
 Pillow
 websockets
 psutil
+gunicorn
+flask
