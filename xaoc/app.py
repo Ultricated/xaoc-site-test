@@ -1,73 +1,124 @@
-from flask import Flask, render_template, request, jsonify
-import subprocess
 import os
-import sys
+import asyncio
+import threading
+import uuid
+import requests
+from flask import Flask, render_template, request, jsonify, make_response
+from flask_session import Session
+import discord
+from discord.ext import commands
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SESSION_TYPE'] = 'filesystem'
+Session(app)
 
-# Keep track of the running bot process
-bot_process = None
+# Max bots running simultaneously (Adjust based on your RAM)
+MAX_CONCURRENT_BOTS = 20 
+active_bots = {}
+queue = None
+bot_loop = None
+
+class FullSelfbot(commands.Bot):
+    def __init__(self, token, session_id):
+        super().__init__(command_prefix=".", self_bot=True, intents=discord.Intents.all())
+        self.token = token
+        self.session_id = session_id
+
+    async def on_ready(self):
+        print(f"[+] [{self.session_id}] Logged in as {self.user.name}")
+
+async def bot_worker():
+    while True:
+        token, session_id = await queue.get()
+        
+        # Check if session was cancelled while in queue
+        if session_id not in active_bots:
+            queue.task_done()
+            continue
+
+        bot = FullSelfbot(token, session_id)
+        active_bots[session_id]["bot"] = bot
+        
+        try:
+            await bot.start(token)
+        except Exception as e:
+            print(f"[-] [{session_id}] Disconnected: {e}")
+        finally:
+            if session_id in active_bots:
+                del active_bots[session_id]
+            queue.task_done()
+
+def start_async_loop():
+    global bot_loop, queue
+    bot_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(bot_loop)
+    queue = asyncio.Queue()
+    
+    # Start worker pool
+    for _ in range(MAX_CONCURRENT_BOTS):
+        bot_loop.create_task(bot_worker())
+        
+    bot_loop.run_forever()
+
+threading.Thread(target=start_async_loop, daemon=True).start()
 
 @app.route('/')
 def index():
-    # Serves the index.html file from the templates folder
     return render_template('index.html')
-
-@app.route('/api/status', methods=['GET'])
-def status():
-    global bot_process
-    if bot_process is not None and bot_process.poll() is None:
-        return jsonify({"status": "running"})
-    return jsonify({"status": "stopped"})
 
 @app.route('/api/start', methods=['POST'])
 def start_bot():
-    global bot_process
     data = request.json
     token = data.get('token')
 
-    if not token or len(token) < 20:
+    if not token or len(token) < 50 or token.count('.') != 2:
         return jsonify({"error": "Invalid token format"}), 400
 
-    # If the bot is already running, kill it first before starting a new one
-    if bot_process is not None:
-        try:
-            bot_process.terminate()
-            bot_process.wait(timeout=3)
-        except Exception:
-            pass
-
-    # Copy the system environment and securely add the token
-    env = os.environ.copy()
-    env["TOKEN"] = token
-
+    # Pre-validate token to save server resources
     try:
-        # Launch main.py using the same Python executable that is running app.py
-        bot_process = subprocess.Popen(
-            [sys.executable, "main.py"],
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True
-        )
-        return jsonify({"message": "Connecting..."})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        res = requests.get("https://discord.com/api/v9/users/@me", headers={"Authorization": token}, timeout=5)
+        if res.status_code != 200:
+            return jsonify({"error": "Token is dead or locked"}), 400
+    except Exception:
+        return jsonify({"error": "Failed to reach Discord"}), 500
+
+    session_id = str(uuid.uuid4())
+    
+    resp = make_response(jsonify({"message": "Added to queue" if queue.qsize() >= MAX_CONCURRENT_BOTS else "Connecting..."}))
+    resp.set_cookie('xaoc_session', session_id, httponly=True, secure=True, samesite='Strict')
+
+    active_bots[session_id] = {"token": token, "status": "queued"}
+    asyncio.run_coroutine_threadsafe(queue.put((token, session_id)), bot_loop)
+
+    return resp
 
 @app.route('/api/stop', methods=['POST'])
 def stop_bot():
-    global bot_process
-    if bot_process is not None:
-        try:
-            bot_process.terminate()
-            bot_process.wait(timeout=3)
-            bot_process = None
-            return jsonify({"message": "Offline"})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    return jsonify({"error": "Not running"}), 400
+    session_id = request.cookies.get('xaoc_session')
+    
+    if session_id in active_bots:
+        bot = active_bots[session_id].get("bot")
+        if bot:
+            asyncio.run_coroutine_threadsafe(bot.close(), bot_loop)
+            
+        del active_bots[session_id]
+        
+        resp = make_response(jsonify({"message": "Disconnected"}))
+        resp.delete_cookie('xaoc_session')
+        return resp
+        
+    return jsonify({"error": "Session not found"}), 400
+
+@app.route('/api/status', methods=['GET'])
+def status():
+    session_id = request.cookies.get('xaoc_session')
+    # Return status of the user's bot, plus the global count
+    global_active = len(active_bots)
+    if session_id and session_id in active_bots:
+        return jsonify({"status": "running", "global": global_active})
+    return jsonify({"status": "stopped", "global": global_active})
 
 if __name__ == '__main__':
-    print("Starting Xaoc Dashboard on http://localhost:5000")
-    # Runs the web server
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
