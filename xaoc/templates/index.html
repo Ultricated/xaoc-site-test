@@ -47,7 +47,11 @@
             background: #222; padding: 10px 15px; border-radius: 6px; margin-bottom: 10px;
             border-left: 4px solid #00ff00;
         }
-        .online-text { color: #00ff00; font-size: 12px; font-weight: bold; }
+        .stop-btn {
+            background: #ff4444; color: white; border: none; padding: 5px 15px;
+            border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .stop-btn:hover { background: #cc0000; }
     </style>
 </head>
 <body>
@@ -62,12 +66,11 @@
     <div class="msg" id="messageText"></div>
 
     <div class="bot-list" id="botList">
-        <!-- Active bots will appear here -->
+        <!-- Active bots will appear here anonymously -->
     </div>
 </div>
 
 <script>
-    // Update the list every 3 seconds
     setInterval(fetchStatus, 3000);
 
     async function fetchStatus() {
@@ -79,14 +82,22 @@
             const botList = document.getElementById('botList');
             
             statusText.innerText = data.bots.length + (data.bots.length === 1 ? " BOT ONLINE" : " BOTS ONLINE");
-            botList.innerHTML = ""; // clear list
+            botList.innerHTML = ""; 
             
             data.bots.forEach(bot => {
                 const div = document.createElement('div');
                 div.className = 'bot-item';
+                
+                // If it's yours, show the Stop button. If not, show nothing.
+                let actionHtml = "";
+                if (bot.mine) {
+                    actionHtml = `<button class="stop-btn" onclick="stopBot('${bot.id}')">Stop</button>`;
+                }
+                
+                // Anonymized display (no usernames or IDs)
                 div.innerHTML = `
-                    <span><strong>${bot.name}</strong> <br><small style="color:#888;">ID: ${bot.id}</small></span>
-                    <span class="online-text">ONLINE</span>
+                    <span><strong>Selfbot</strong> <br><small style="color:#888;">ONLINE</small></span>
+                    ${actionHtml}
                 `;
                 botList.appendChild(div);
             });
@@ -119,9 +130,9 @@
             const data = await res.json();
             
             if(res.ok) {
-                msg.innerText = "Connected! Bot is starting.";
+                msg.innerText = "Connected!";
                 msg.className = "msg";
-                document.getElementById('tokenInput').value = ""; // clear input
+                document.getElementById('tokenInput').value = ""; 
                 fetchStatus();
             } else {
                 msg.innerText = data.error;
@@ -135,8 +146,22 @@
         btn.innerText = "Host Selfbot";
         btn.disabled = false;
     }
+
+    async function stopBot(id) {
+        try {
+            const res = await fetch('/api/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error);
+            }
+            fetchStatus();
+        } catch (e) {}
+    }
     
-    // Load initial list on page load
     fetchStatus();
 </script>
 
