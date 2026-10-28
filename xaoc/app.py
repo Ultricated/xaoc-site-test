@@ -8,7 +8,6 @@ import shutil
 app = Flask(__name__)
 
 # This dictionary will store all running bots
-# Format: { "user_id": {"process": subprocess.Popen, "name": "username"} }
 active_bots = {}
 
 @app.route('/')
@@ -25,7 +24,6 @@ def status():
     for uid in dead_ids:
         del active_bots[uid]
         
-    # Return list of active bots to the website
     bots_list = [{"id": uid, "name": data["name"]} for uid, data in active_bots.items()]
     return jsonify({"bots": bots_list})
 
@@ -57,13 +55,12 @@ def start_bot():
     instance_dir = os.path.join(os.getcwd(), "instances", user_id)
     os.makedirs(instance_dir, exist_ok=True)
 
-    # Copy main.py to the isolated folder so they don't share data.json
     try:
         shutil.copy("main.py", os.path.join(instance_dir, "main.py"))
     except Exception as e:
         return jsonify({"error": f"Failed to copy main.py: {e}"}), 500
 
-    # 4. Start the bot process inside its isolated folder
+    # 4. Start the bot process
     env = os.environ.copy()
     env["TOKEN"] = token
 
@@ -71,7 +68,6 @@ def start_bot():
         log_file = open(os.path.join(instance_dir, "bot.log"), "a")
         log_file.write(f"\n--- STARTING BOT FOR {username} ---\n")
         
-        # cwd=instance_dir forces the bot to use its own folder for config.json/data.json
         process = subprocess.Popen(
             [sys.executable, "main.py"],
             cwd=instance_dir, 
@@ -87,20 +83,7 @@ def start_bot():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/stop', methods=['POST'])
-def stop_bot():
-    data = request.json
-    user_id = data.get('id')
-    
-    if user_id in active_bots:
-        try:
-            active_bots[user_id]["process"].terminate()
-            active_bots[user_id]["process"].wait(timeout=3)
-            del active_bots[user_id]
-            return jsonify({"message": "Offline"})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    return jsonify({"error": "Not running"}), 400
+# The /api/stop route is completely gone. They cannot kill bots from the website.
 
 if __name__ == '__main__':
     print("Starting Xaoc Dashboard on http://localhost:5000")
