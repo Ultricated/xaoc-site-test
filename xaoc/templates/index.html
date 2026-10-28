@@ -103,8 +103,6 @@
     </div>
 
     <script>
-        let pollInterval = null;
-
         async function checkStatus() {
             try {
                 const res = await fetch('/api/status');
@@ -115,20 +113,9 @@
                 if (data.status === 'running') {
                     document.getElementById('connect-view').style.display = 'none';
                     document.getElementById('active-view').style.display = 'block';
-                    document.getElementById('status-message').innerText = "Connected!";
-                    document.getElementById('status-message').style.color = "var(--green)";
-                    
-                    // Stop polling once connected
-                    if (pollInterval) {
-                        clearInterval(pollInterval);
-                        pollInterval = null;
-                    }
-                } else if (data.status === 'stopped' && document.getElementById('active-view').style.display === 'block') {
-                    // Bot disconnected or crashed
+                } else {
                     document.getElementById('connect-view').style.display = 'block';
                     document.getElementById('active-view').style.display = 'none';
-                    document.getElementById('status-message').innerText = "Disconnected.";
-                    document.getElementById('status-message').style.color = "var(--accent)";
                 }
             } catch (e) {}
         }
@@ -143,7 +130,7 @@
                 return;
             }
 
-            statusText.innerText = "Connecting (this takes 10-15s)...";
+            statusText.innerText = "Validating token...";
             statusText.style.color = "#ffcc00";
 
             try {
@@ -156,12 +143,10 @@
                 const data = await res.json();
                 
                 if (res.ok) {
-                    document.getElementById('token').value = ''; // clear
-                    
-                    // Start polling every 3 seconds
-                    if (pollInterval) clearInterval(pollInterval);
-                    pollInterval = setInterval(checkStatus, 3000);
-                    
+                    statusText.innerText = data.message;
+                    statusText.style.color = "var(--green)";
+                    document.getElementById('token').value = '';
+                    setTimeout(checkStatus, 1500); 
                 } else {
                     statusText.innerText = "Error: " + data.error;
                     statusText.style.color = "var(--accent)";
@@ -182,7 +167,7 @@
                 if (res.ok) {
                     statusText.innerText = "Offline";
                     statusText.style.color = "var(--text-muted)";
-                    checkStatus(); // instantly update view
+                    setTimeout(checkStatus, 1000);
                 }
             } catch (err) {
                 statusText.innerText = "Server offline";
@@ -190,6 +175,8 @@
             }
         }
 
+        // Check status every 10 seconds to keep global count updated
+        setInterval(checkStatus, 10000);
         window.onload = checkStatus;
     </script>
 
