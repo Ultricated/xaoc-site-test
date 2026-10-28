@@ -2,7 +2,6 @@ import os
 import asyncio
 import threading
 import uuid
-import requests
 from flask import Flask, render_template, request, jsonify, make_response
 from flask_session import Session
 import discord
@@ -13,7 +12,7 @@ app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
-# Max bots running simultaneously (Adjust based on your RAM)
+# Max bots running simultaneously
 MAX_CONCURRENT_BOTS = 20 
 active_bots = {}
 queue = None
@@ -105,7 +104,6 @@ def stop_bot():
 @app.route('/api/status', methods=['GET'])
 def status():
     session_id = request.cookies.get('xaoc_session')
-    # Return status of the user's bot, plus the global count
     global_active = len(active_bots)
     if session_id and session_id in active_bots:
         return jsonify({"status": "running", "global": global_active})
